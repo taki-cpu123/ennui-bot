@@ -5,7 +5,6 @@ from discord.ext import commands
 import asyncio
 from datetime import datetime
 import io
-from aiohttp import web
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -23,30 +22,31 @@ LOG_CHANNEL_ID = 1440923132062863422
 active_tickets = {}
 ticket_data = {}  # Store ticket creation info for transcripts
 
-# ===== SIMPLE WEB SERVER FOR HEALTH CHECKS =====
+# ===== SIMPLE HTTP SERVER FOR HEALTH CHECKS =====
+import socket
+from threading import Thread
 
+def health_check_server():
+    """Simple TCP server that responds to health checks"""
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    try:
+        server.bind(('0.0.0.0', 8000))
+        server.listen(1)
+        print("✅ Health check server started on port 8000")
+        while True:
+            client, address = server.accept()
+            client.send(b'HTTP/1.1 200 OK\n\nBot is running!')
+            client.close()
+    except Exception as e:
+        print(f"❌ Health check server error: {e}")
 
-async def health_check(request):
-    return web.Response(text="Bot is running!")
-
-
-def start_web_server():
-    app = web.Application()
-    app.router.add_get('/', health_check)
-
-    async def start_server():
-        runner = web.AppRunner(app)
-        await runner.setup()
-        site = web.TCPSite(runner, '0.0.0.0', 8000)
-        await site.start()
-        print("✅ Health check server running on port 8000")
-
-    # Run the web server in the background
-    asyncio.create_task(start_server())
+def start_health_server():
+    """Start health check server in background thread"""
+    thread = Thread(target=health_check_server, daemon=True)
+    thread.start()
 
 # ===== TICKET SYSTEM =====
-
-
 class TicketView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
@@ -245,8 +245,6 @@ class TicketCloseView(discord.ui.View):
             del ticket_data[channel.id]
 
 # ===== AUTO ROLE & WELCOME FEATURES =====
-
-
 @bot.event
 async def on_ready():
     print(f'{bot.user} is online and ready!')
@@ -255,8 +253,8 @@ async def on_ready():
     print(f'Log Channel ID: {LOG_CHANNEL_ID}')
 
     # Start health check server
-    start_web_server()
-
+    start_health_server()
+    
     # Add the persistent views
     bot.add_view(TicketView())
     bot.add_view(TicketCloseView())
@@ -287,8 +285,6 @@ async def on_member_join(member):
         print(f"❌ Error assigning role: {e}")
 
 # ===== TICKET COMMANDS =====
-
-
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def setup_tickets(ctx):
@@ -381,8 +377,6 @@ async def ticket_stats(ctx):
     await ctx.send(embed=embed)
 
 # ===== AUTO-ROLE COMMANDS =====
-
-
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def set_autorole(ctx, role_id: int):
@@ -431,8 +425,6 @@ async def test_autorole(ctx):
         await ctx.send(f"❌ Error: {e}")
 
 # ===== HELP COMMAND =====
-
-
 @bot.command()
 async def commands(ctx):
     """Show all available commands"""
