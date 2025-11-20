@@ -5,8 +5,7 @@ from discord.ext import commands
 import asyncio
 from datetime import datetime
 import io
-from flask import Flask
-from threading import Thread
+from aiohttp import web
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -25,26 +24,25 @@ active_tickets = {}
 ticket_data = {}  # Store ticket creation info for transcripts
 
 # ===== SIMPLE WEB SERVER FOR HEALTH CHECKS =====
-app = Flask('')
 
 
-@app.route('/')
-def home():
-    return "Bot is running!"
+async def health_check(request):
+    return web.Response(text="Bot is running!")
 
 
-def run():
-    app.run(host='0.0.0.0', port=8000)
+def start_web_server():
+    app = web.Application()
+    app.router.add_get('/', health_check)
 
+    async def start_server():
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, '0.0.0.0', 8000)
+        await site.start()
+        print("✅ Health check server running on port 8000")
 
-def keep_alive():
-    t = Thread(target=run)
-    t.daemon = True
-    t.start()
-
-
-# Start the web server
-keep_alive()
+    # Run the web server in the background
+    asyncio.create_task(start_server())
 
 # ===== TICKET SYSTEM =====
 
@@ -255,6 +253,9 @@ async def on_ready():
     print(f'Auto-role ID set to: {AUTO_ROLE_ID}')
     print(f'Ticket Category ID: {TICKET_CATEGORY_ID}')
     print(f'Log Channel ID: {LOG_CHANNEL_ID}')
+
+    # Start health check server
+    start_web_server()
 
     # Add the persistent views
     bot.add_view(TicketView())
