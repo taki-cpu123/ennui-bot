@@ -236,7 +236,7 @@ async def on_ready():
     bot.add_view(TicketView())
     bot.add_view(TicketCloseView())
 
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Made By Taki"))
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Best Cheap Chat-tags"))
 
 
 @bot.event
@@ -435,4 +435,5 @@ async def commands(ctx):
 bot.remove_command('help')
 
 bot.run(TOKEN)
+
 
