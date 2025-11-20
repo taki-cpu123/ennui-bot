@@ -1,3 +1,5 @@
+from threading import Thread
+import socket
 import os
 from dotenv import load_dotenv
 import discord
@@ -23,9 +25,6 @@ active_tickets = {}
 ticket_data = {}  # Store ticket creation info for transcripts
 
 # ===== SIMPLE HTTP SERVER FOR HEALTH CHECKS =====
-import socket
-from threading import Thread
-
 def health_check_server():
     """Simple TCP server that responds to health checks"""
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -244,7 +243,7 @@ class TicketCloseView(discord.ui.View):
         if channel.id in ticket_data:
             del ticket_data[channel.id]
 
-# ===== AUTO ROLE & WELCOME FEATURES =====
+# ===== AUTO ROLE FEATURE =====
 @bot.event
 async def on_ready():
     print(f'{bot.user} is online and ready!')
@@ -254,17 +253,16 @@ async def on_ready():
 
     # Start health check server
     start_health_server()
-    
+
     # Add the persistent views
     bot.add_view(TicketView())
     bot.add_view(TicketCloseView())
 
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Ennui - Cheapest Buy-Ins"))
 
-
 @bot.event
 async def on_member_join(member):
-    """Auto-role and welcome when members join"""
+    """Auto-role when members join"""
     role = member.guild.get_role(AUTO_ROLE_ID)
 
     if role is None:
@@ -274,11 +272,6 @@ async def on_member_join(member):
     try:
         await member.add_roles(role)
         print(f"✅ Assigned {role.name} to {member.display_name}")
-
-        welcome_channel = member.guild.system_channel
-        if welcome_channel:
-            await welcome_channel.send(f"You are now a part of Ennui {member.mention}")
-
     except discord.Forbidden:
         print("❌ Error: Bot doesn't have permission to assign roles!")
     except Exception as e:
@@ -303,7 +296,6 @@ async def setup_tickets(ctx):
     view = TicketView()
     await ctx.send(embed=embed, view=view)
     await ctx.message.delete()
-
 
 @bot.command()
 async def close(ctx):
@@ -337,7 +329,6 @@ async def close(ctx):
     else:
         await ctx.send("❌ This command can only be used in ticket channels.")
 
-
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def force_close(ctx, channel: discord.TextChannel = None):
@@ -359,7 +350,6 @@ async def force_close(ctx, channel: discord.TextChannel = None):
         await ctx.send(f"✅ Force closed ticket: {target_channel.name}")
     else:
         await ctx.send("❌ This is not a valid ticket channel.")
-
 
 @bot.command()
 @commands.has_permissions(administrator=True)
@@ -389,7 +379,6 @@ async def set_autorole(ctx, role_id: int):
     AUTO_ROLE_ID = role_id
     await ctx.send(f"✅ Auto-role set to: **{role.name}**")
 
-
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def autorole(ctx, role: discord.Role):
@@ -397,7 +386,6 @@ async def autorole(ctx, role: discord.Role):
     global AUTO_ROLE_ID
     AUTO_ROLE_ID = role.id
     await ctx.send(f"✅ Auto-role set to: **{role.name}**")
-
 
 @bot.command()
 async def check_autorole(ctx):
@@ -407,7 +395,6 @@ async def check_autorole(ctx):
         await ctx.send(f"🔄 Current auto-role: **{role.name}** (ID: {AUTO_ROLE_ID})")
     else:
         await ctx.send(f"❌ Auto-role not set or role not found (ID: {AUTO_ROLE_ID})")
-
 
 @bot.command()
 async def test_autorole(ctx):
