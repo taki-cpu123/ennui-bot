@@ -5,6 +5,8 @@ from discord.ext import commands
 import asyncio
 from datetime import datetime
 import io
+from flask import Flask
+from threading import Thread
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -21,6 +23,28 @@ LOG_CHANNEL_ID = 1440923132062863422
 # Store active tickets and their data
 active_tickets = {}
 ticket_data = {}  # Store ticket creation info for transcripts
+
+# ===== SIMPLE WEB SERVER FOR HEALTH CHECKS =====
+app = Flask('')
+
+
+@app.route('/')
+def home():
+    return "Bot is running!"
+
+
+def run():
+    app.run(host='0.0.0.0', port=8000)
+
+
+def keep_alive():
+    t = Thread(target=run)
+    t.daemon = True
+    t.start()
+
+
+# Start the web server
+keep_alive()
 
 # ===== TICKET SYSTEM =====
 
@@ -236,7 +260,7 @@ async def on_ready():
     bot.add_view(TicketView())
     bot.add_view(TicketCloseView())
 
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Best Cheap Chat-tags"))
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Ennui - Cheapest Buy-Ins"))
 
 
 @bot.event
@@ -435,5 +459,3 @@ async def commands(ctx):
 bot.remove_command('help')
 
 bot.run(TOKEN)
-
-
